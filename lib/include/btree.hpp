@@ -1,15 +1,12 @@
 #pragma once
 
-#include <x86intrin.h>
-
+#include "types.hpp"
 #include <iostream>
 #include <concepts>
 #include <limits>
 #include <vector>
 
 namespace experiments::btree {
-
-using Reg = __m256i;
 
 void print(__m256i v)
 {
@@ -18,9 +15,9 @@ void print(__m256i v)
     std::cout << std::endl;
 }
 
-auto compare(Reg x, std::integral auto* node) -> Reg
+auto compare(types::AVXIReg x, std::integral auto* node) -> types::AVXIReg
 {
-    Reg y = _mm256_load_si256((Reg*)node);
+    types::AVXIReg y = _mm256_load_si256((types::AVXIReg*)node);
     print(y);
     return _mm256_cmpgt_epi32(x, y);
 }

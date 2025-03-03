@@ -1,1 +1,2 @@
 add_subdirectory(btree_run)
+add_subdirectory(simd_run)
