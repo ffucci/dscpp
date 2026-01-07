@@ -3,8 +3,8 @@ from conan import ConanFile
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMake, CMakeToolchain
 
-class DsExpConanPackage(ConanFile):
-    name = "ds_exp"
+class CppLearnConanPackage(ConanFile):
+    name = "cpplearn"
     version = "0.1"
     license = "MIT"
     author = "Francesco Fucci"
@@ -28,7 +28,7 @@ class DsExpConanPackage(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.libs = ["ds_exp"]
+        self.cpp_info.libs = ["cpplearn"]
 
     def requirements(self):
         self.requires("ninja/1.10.2")

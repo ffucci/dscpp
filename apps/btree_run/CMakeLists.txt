@@ -11,4 +11,4 @@ target_compile_options(btree_run PRIVATE
     -Wpedantic   # Enforce strict standard compliance
     -O3          # Optimize for speed
 )
-target_link_libraries(btree_run PUBLIC ds_exp spdlog::spdlog)
+target_link_libraries(btree_run PUBLIC cpplearn spdlog::spdlog)
