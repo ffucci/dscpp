@@ -2,8 +2,6 @@
 
 #include <typeinfo>
 #include <algorithm>
-#include <cstdint>
-#include <memory>
 #include <utility>
 
 // A very simple variant implementation for testing
