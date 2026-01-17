@@ -1,8 +1,9 @@
-#include "btree.hpp"
-#include "simd.hpp"
 #include <cstddef>
 #include <iostream>
 #include <chrono>
+
+#include "simd/btree.hpp"
+#include "simd/simd.hpp"
 
 int main()
 {

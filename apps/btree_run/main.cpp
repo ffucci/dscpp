@@ -1,5 +1,5 @@
-#include "btree.hpp"
-#include "simd.hpp"
+#include "simd/btree.hpp"
+#include "simd/simd.hpp"
 #include <iostream>
 
 int main()

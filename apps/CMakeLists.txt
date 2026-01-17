@@ -1,3 +1,4 @@
 add_subdirectory(btree_run)
 add_subdirectory(simd_run)
 add_subdirectory(variant_run)
+add_subdirectory(rbuf_run)
