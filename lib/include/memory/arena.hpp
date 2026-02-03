@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdint>
 #include <stdexcept>
@@ -19,7 +21,7 @@ class Arena
         end_ = begin_ + size;
     }
 
-    void* allocate(ptrdiff_t size, ptrdiff_t alignment) noexcept
+    [[nodiscard]] void* allocate(ptrdiff_t size, ptrdiff_t alignment)
     {
         ptrdiff_t pad = -(uintptr_t)begin_ & (alignment - 1);
         if (end_ - begin_ - pad < size) {
