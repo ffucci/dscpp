@@ -33,7 +33,8 @@ class Arena
         return ptr;
     }
 
-    ~Arena() {
+    ~Arena()
+    {
         if (orig_start_) {
             std::free(orig_start_);
         }
@@ -71,4 +72,28 @@ class ArenaAllocatorV1
     Arena<char> arena_;
 };
 
-}  // namespace cpplearn::memory_order
+template <typename T>
+class ArenaAllocatorV2
+{
+   public:
+    explicit ArenaAllocatorV2(int count) : arena_(count * sizeof(T))
+    {
+    }
+
+    template <typename... Args>
+    T* create(Args&&... args) noexcept
+    {
+        void* ptr = arena_.allocate(sizeof(T), alignof(T));
+        if (!ptr) {
+            return nullptr;
+        }
+
+        T* conv_ptr = static_cast<T*>(ptr);
+        return new (conv_ptr) T(std::forward<Args>(args)...);
+    }
+
+   private:
+    Arena<char> arena_;
+};
+
+}  // namespace cpplearn::memory

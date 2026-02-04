@@ -11,7 +11,7 @@ struct A {
 #pragma pack(pop)
 
 int main() {
-    cpplearn::memory::ArenaAllocatorV1<A> arena(5);
+    cpplearn::memory::ArenaAllocatorV2<A> arena(5);
 
     A* a = arena.create(1, 2, 4);
     std::cout << a->x << ", " << a->y << ", " << a->z << std::endl;
