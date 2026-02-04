@@ -1,6 +1,7 @@
-#include "memory/arena.hpp"
-
 #include <iostream>
+
+#include "memory/arena.hpp"
+#include "containers/mvector.hpp"
 
 #pragma pack(push, 1)
 struct A {
@@ -10,6 +11,13 @@ struct A {
 };
 #pragma pack(pop)
 
+struct B
+{
+    int a;
+    int b;
+    int c;
+};
+
 int main() {
     cpplearn::memory::ArenaAllocatorV2<A> arena(5);
 
@@ -18,5 +26,7 @@ int main() {
 
     A* b = arena.create(3, 4, 5);
     std::cout << b->x << ", " << b->y << ", " << b->z << std::endl;
+
+    cpplearn::containers::mvector<B> vec(5);
     return 0;
 }

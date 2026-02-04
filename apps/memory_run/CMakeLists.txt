@@ -6,10 +6,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     )
 
     target_compile_options(memory_run PRIVATE
-            -Wall        # Enable all warnings
-            -Wextra      # Enable extra warnings
-            -Wpedantic   # Enforce strict standard compliance
-            -g
             -O0
     )
 else ()
