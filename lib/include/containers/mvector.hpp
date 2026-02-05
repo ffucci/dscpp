@@ -1,6 +1,30 @@
 #pragma once
 #include <memory>
 
+// Define the result struct if the library missed it
+#if !defined(__cpp_lib_allocate_at_least)
+namespace std {
+template<typename Pointer, typename SizeType = std::size_t>
+struct allocation_result {
+    Pointer ptr;
+    SizeType count;
+};
+}
+#endif
+
+template <typename Alloc>
+auto safe_allocate_at_least(Alloc& a, std::size_t n) {
+#if defined(__cpp_lib_allocate_at_least)
+    return std::allocator_traits<Alloc>::allocate_at_least(a, n);
+#else
+    // Fallback for incomplete Ubuntu 24.04 headers
+    return std::allocation_result<typename std::allocator_traits<Alloc>::pointer>{
+        a.allocate(n),
+        n
+    };
+#endif
+}
+
 namespace cpplearn::containers {
 
 
@@ -63,12 +87,21 @@ public:
         return static_cast<size_type>(this->end_ - this->begin_);
     }
 
+    [[nodiscard]] constexpr size_type capacity() const noexcept
+    {
+        return static_cast<size_type>(this->cap_ - this->begin_);
+    }
+
+    [[nodiscard]] value_type& operator[](size_type n) noexcept
+    {
+        return this->begin_[n];
+    }
+
     ~mvector()
     {
         // Move to a destroy vector class
         this->allocator_.deallocate(this->begin_, this->size());
     }
-
 private:
     pointer begin_{nullptr}; // start of the dynamic vector
     pointer end_{nullptr};   // contains the current state of the vector with
@@ -83,7 +116,7 @@ private:
         }
 
         // Try to allocate
-        auto allocation = _allocator_traits::allocate_at_least(this->allocator_, n);
+        auto allocation = safe_allocate_at_least(this->allocator_, n);
         begin_ = allocation.ptr;
         end_ = allocation.ptr;
         cap_ = begin_ + allocation.count;

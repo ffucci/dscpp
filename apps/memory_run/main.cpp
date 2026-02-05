@@ -13,10 +13,15 @@ struct A {
 
 struct B
 {
-    int a;
-    int b;
-    int c;
+    int a{1};
+    int b{2};
+    int c{3};
 };
+
+std::ostream& operator<<(std::ostream& os, const B& b) {
+    os << b.a << ", " << b.b << ", " << b.c;
+    return os;
+}
 
 int main() {
     cpplearn::memory::ArenaAllocatorV2<A> arena(5);
@@ -28,5 +33,7 @@ int main() {
     std::cout << b->x << ", " << b->y << ", " << b->z << std::endl;
 
     cpplearn::containers::mvector<B> vec(5);
+    std::println(std::cout, "Vector size is {}", vec.size());
+    std::cout << vec[1] << std::endl;
     return 0;
 }
