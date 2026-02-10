@@ -192,6 +192,7 @@ constexpr mvector<T, Allocator>::reference mvector<T, Allocator>::emplace_back(A
         this->emplace_back_assume_capacity(std::forward<Args>(args)...);
     }else {
         // slow allocation: reallocation is needed
+        throw std::runtime_error("not implemented");
     }
 
     return *(this->end_ - 1); // before end is the last element
