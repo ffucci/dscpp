@@ -1,32 +1,13 @@
 #pragma once
+
 #include <memory>
 
-// Define the result struct if the library missed it
-#if !defined(__cpp_lib_allocate_at_least)
-namespace std {
-template<typename Pointer, typename SizeType = std::size_t>
-struct allocation_result {
-    Pointer ptr;
-    SizeType count;
-};
-}
-#endif
+#include "utils/allocation_utils.hpp"
+#include "utils/exception_guard.hpp"
 
-template <typename Alloc>
-auto safe_allocate_at_least(Alloc& a, std::size_t n) {
-#if defined(__cpp_lib_allocate_at_least)
-    return std::allocator_traits<Alloc>::allocate_at_least(a, n);
-#else
-    // Fallback for incomplete Ubuntu 24.04 headers
-    return std::allocation_result<typename std::allocator_traits<Alloc>::pointer>{
-        a.allocate(n),
-        n
-    };
-#endif
-}
+#include <cassert>
 
 namespace cpplearn::containers {
-
 
 template <typename T, typename Allocator = std::allocator<T>>
 class mvector
@@ -45,12 +26,15 @@ public:
 
     constexpr explicit mvector(size_type n)
     {
-        // At the moment this is not providing strong exception guarantee
+        auto guard = cpplearn::utility::make_exception_guard(__destroy_vector(*this));
         if (n > 0) {
             this->_allocate(n);
             this->construct_at_end(n);
         }
+        guard.complete();
     }
+
+    constexpr explicit mvector() = default;
 
     // // This is still wrong
     // constexpr mvector(const mvector& m) : allocator_(m.allocator_) {
@@ -65,6 +49,27 @@ public:
 
     constexpr mvector(size_type n, const allocator_type& allocator) : allocator_(allocator) {
         this->_allocate(n);
+    }
+
+
+    template <class... Args>
+    constexpr reference emplace_back(Args&&... args);
+
+    template <class... Args>
+    constexpr void emplace_back_assume_capacity(Args&&... args)
+    {
+        assert(size() < capacity() && "Size is greater than capacity");
+        _allocator_traits::construct(this->allocator_, this->end_, std::forward<Args>(args)...);
+        // in libstdc++ there is a RAII guard that makes sure that there is a commit transaction done
+        ++this->end_;
+    }
+
+    constexpr void reserve(size_type n);
+
+    void clear()
+    {
+        // The new end will be the begin, cost is O(n)
+        this->destruct_at_end(this->begin_);
     }
 
     [[nodiscard]] constexpr value_type* data() noexcept
@@ -97,11 +102,12 @@ public:
         return this->begin_[n];
     }
 
+    /// Destroys the vector and releases the memory
     ~mvector()
     {
-        // Move to a destroy vector class
-        this->allocator_.deallocate(this->begin_, this->size());
+       __destroy_vector(*this)();
     }
+
 private:
     pointer begin_{nullptr}; // start of the dynamic vector
     pointer end_{nullptr};   // contains the current state of the vector with
@@ -109,14 +115,36 @@ private:
     [[no_unique_address]] pointer cap_{nullptr}; // points to the end of the allocated memory
     [[no_unique_address]] allocator_type allocator_; // allocator used to allocate memory
 
+    class __destroy_vector
+    {
+    public:
+        constexpr __destroy_vector(mvector& mvec) : mvec_(mvec) {}
+
+        constexpr void operator()()
+        {
+            if (mvec_.begin_ != nullptr) {
+                // clear the vector
+                mvec_.clear();
+                _allocator_traits::deallocate(mvec_.allocator_, mvec_.begin_, mvec_.capacity());
+            }
+        }
+
+    private:
+        mvector& mvec_;
+    };
+
+
     constexpr void _allocate(size_type n)
     {
         if (n > max_size()) {
-            throw std::length_error("max_size() exceeded");
+            throw_length_error();
         }
 
         // Try to allocate
         auto allocation = safe_allocate_at_least(this->allocator_, n);
+
+        // At this stage begin_ and end_ are pointing at the start of the memory
+        // and cap_ is pointing at the end of the allocated memory
         begin_ = allocation.ptr;
         end_ = allocation.ptr;
         cap_ = begin_ + allocation.count;
@@ -137,6 +165,65 @@ private:
             _allocator_traits::construct(this->allocator_, this->end_);
         }
     }
+
+    constexpr void destruct_at_end(pointer new_last)
+    {
+        auto soon_to_be_end = this->end_;
+        // End contains an element after the last one
+        while (soon_to_be_end != new_last) {
+            _allocator_traits::destroy(this->allocator_, std::to_address(--soon_to_be_end));
+        }
+        this->end_ = new_last;
+    }
+
+    constexpr void throw_length_error()
+    {
+        throw std::length_error("max_size() exceeded");
+    }
 };
 
+
+template <typename T, typename Allocator>
+template <class... Args>
+constexpr mvector<T, Allocator>::reference mvector<T, Allocator>::emplace_back(Args&&... args)
+{
+    if (this->end_ < this->cap_) [[likely]] {
+        // fast allocation no allocation is needed
+        this->emplace_back_assume_capacity(std::forward<Args>(args)...);
+    }else {
+        // slow allocation: reallocation is needed
+    }
+
+    return *(this->end_ - 1); // before end is the last element
+}
+
+template <typename T, typename Allocator>
+constexpr void mvector<T, Allocator>::reserve(size_type n)
+{
+    if (n > capacity()) {
+        if (n > max_size()) {
+            throw_length_error();
+        }
+
+        // perform strong exception guaranteed reallocation
+        // TODO: implement split buffer for now basic reallocation
+        // this is not exception safe
+
+        auto exception_guard = cpplearn::utility::make_exception_guard(__destroy_vector(*this));
+        auto allocation = safe_allocate_at_least(this->allocator_, n);
+        auto old_size = this->size();
+        if (this->begin_ != nullptr) {
+            // we need to copy the elements to the new memory
+            std::copy(this->begin_, this->end_, allocation.ptr);
+
+            this->clear();
+            _allocator_traits::deallocate(this->allocator_, this->begin_, this->capacity());
+        }
+
+        this->begin_ = allocation.ptr;
+        this->end_ = allocation.ptr + old_size;
+        this->cap_ = this->begin_ + allocation.count;
+        exception_guard.complete();
+    }
+}
 }
