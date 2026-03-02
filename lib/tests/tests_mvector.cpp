@@ -1,5 +1,4 @@
 #include "containers/mvector.hpp"
-
 #include <gtest/gtest.h>
 
 TEST(MVector, Basic) {
@@ -35,4 +34,28 @@ TEST(MVector, Reserve) {
     EXPECT_EQ(v.size(), 2);
     EXPECT_EQ(v.capacity(), 20);
 }
+
+TEST(MVector, Assign)
+{
+    cpplearn::containers::mvector<int> v;
+    v.assign(10, 5);
+    EXPECT_EQ(v.size(), 10);
+
+    for (int i = 0; i < 10; ++i) {
+        EXPECT_EQ(v[i], 5);
+    }
+}
+
+TEST(MVector, At)
+{
+    cpplearn::containers::mvector<int> v;
+    v.assign(10, 0);
+    for (int i = 0; i < 10; ++i) {
+        v[i] = i + 1;
+    }
+    EXPECT_EQ(v.at(4), 5);
+    EXPECT_EQ(v.at(9), 10);
+    EXPECT_THROW(v.at(10), std::out_of_range);
+}
+
 
