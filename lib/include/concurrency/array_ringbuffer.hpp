@@ -2,6 +2,8 @@
 #include <atomic>
 #include <cstddef>
 
+namespace cpplearn::concurrency {
+
 template <typename T, std::size_t N>
 class ArrayRingBuffer
 {
@@ -49,3 +51,4 @@ class ArrayRingBuffer
     alignas(64) T buffer_[N];
     alignas(64) std::atomic<size_t> write_index_{0};
 };
+}  // namespace cpplearn::concurrency

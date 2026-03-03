@@ -1,15 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 
 # set the project name
-project(CppLearn)
+project(cpp_learn)
 
-set(CMAKE_CXX_COMPILER /usr/bin/c++)
+set(CMAKE_CXX_COMPILER clang++)
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
 
 # Add GoogleTest
 find_package(GTest REQUIRED CONFIG)
