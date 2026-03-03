@@ -1,7 +1,7 @@
 #include <thread>
 #include <iostream>
 
-// #define NO_FALSE_SHARING true
+#define NO_FALSE_SHARING true
 
 #include "concurrency/array_ringbuffer.hpp"
 #include "concurrency/simple_ringbuffer.hpp"
