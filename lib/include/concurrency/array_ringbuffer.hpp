@@ -2,10 +2,11 @@
 #include <atomic>
 #include <cstddef>
 
+namespace cpplearn::concurrency {
 template <typename T, std::size_t N>
 class ArrayRingBuffer
 {
-   public:
+public:
     static_assert(N > 0, "Array buffer needs to have at least one slot");
     static_assert((N & (N - 1)) == 0, "Array buffer needs to be a power of 2");
 
@@ -23,7 +24,7 @@ class ArrayRingBuffer
         return write_index_.load(std::memory_order_relaxed);
     }
 
-   private:
+private:
     alignas(64) std::atomic<size_t> read_index_{0};
     alignas(64) T buffer_[N];
     alignas(64) std::atomic<size_t> write_index_{0};
@@ -56,4 +57,5 @@ bool ArrayRingBuffer<T, N>::pop(T& value) noexcept
     value = buffer_[tail];
     read_index_.store((tail + 1) & (N - 1), std::memory_order_release);
     return true;
+}
 }
