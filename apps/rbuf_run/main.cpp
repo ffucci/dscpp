@@ -1,6 +1,10 @@
 #include <thread>
 #include <iostream>
+
+#define NO_FALSE_SHARING true
+
 #include "concurrency/array_ringbuffer.hpp"
+#include "concurrency/simple_ringbuffer.hpp"
 
 void pinThread(int cpu)
 {
@@ -19,17 +23,17 @@ void pinThread(int cpu)
 template <typename T>
 void bench(int cpu1, int cpu2)
 {
-    const size_t queueSize = 100000;
-    const int64_t iters = 100000000;
+    constexpr size_t queueSize = 100000;
+    constexpr int64_t iters = 100000000;
 
-    T q{};
+    T q(queueSize);
     auto t = std::thread([&] {
         pinThread(cpu1);
         for (int i = 0; i < iters; ++i) {
             int val;
             while (!q.pop(val));
             if (val != i) {
-                throw std::runtime_error("");
+                throw std::runtime_error("Unexpected value");
             }
         }
     });
@@ -58,7 +62,7 @@ int main(int argc, char *argv[])
     }
 
     // bench<ringbuffer>(cpu1, cpu2);
-    bench<ArrayRingBuffer<int, 1 << 20>>(cpu1, cpu2);
-
+    // bench<cpplearn::concurrency::ArrayRingBuffer<int, 1 << 20>>(cpu1, cpu2);
+    bench<cpplearn::concurrency::SimpleRingBufferFS<int>>(cpu1, cpu2);
     return 0;
 }
