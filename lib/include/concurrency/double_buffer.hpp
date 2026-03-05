@@ -26,7 +26,8 @@ class DoubleBuffer
     void read(OnRead&& on_read)
     {
         T* published_ptr = published_ptr_.load(std::memory_order_acquire);
-        on_read(*published_ptr);
+        auto value = *published_ptr;
+        on_read(value);
     }
 
    private:
@@ -93,7 +94,7 @@ class DoubleBufferInitial
    public:
     void write(const T& value) noexcept
     {
-        auto write_idx = read_index_.load(std::memory_order_acquire) ^ 1u;
+        auto write_idx = read_index_.load(std::memory_order_acquire);
         buffer_[write_idx] = value;
     }
 
