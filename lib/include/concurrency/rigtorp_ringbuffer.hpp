@@ -41,10 +41,10 @@ class RigtorpRingBuffer
 
     [[nodiscard]] bool pop(T& value)
     {
-        const auto read_idx = read_idx_.load(std::memory_order_acquire);
+        const auto read_idx = read_idx_.load(std::memory_order_relaxed);
         if (read_idx == write_idx_cached_) {
-            read_idx_cached_ = read_idx_.load(std::memory_order_acquire);
-            if (read_idx_cached_ == write_idx_cached_) {
+            write_idx_cached_ = write_idx_.load(std::memory_order_acquire);
+            if (read_idx == write_idx_cached_) {
                 return false;
             }
         }
@@ -56,6 +56,16 @@ class RigtorpRingBuffer
         }
         read_idx_.store(next_idx, std::memory_order_release);
         return true;
+    }
+
+    [[nodiscard]] size_t read_idx() const noexcept
+    {
+        return read_idx_.load(std::memory_order_relaxed);
+    }
+
+    [[nodiscard]] size_t write_idx() const noexcept
+    {
+        return write_idx_.load(std::memory_order_relaxed);
     }
 
    private:
