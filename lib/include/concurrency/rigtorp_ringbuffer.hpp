@@ -12,7 +12,10 @@ class RigtorpRingBuffer
    public:
     static_assert(std::is_trivially_constructible_v<T>);
 
-    RigtorpRingBuffer(size_t capacity, 0) : buffer_(capacity)
+    /// <summary>
+    /// Creates a new ring buffer
+    /// </summary>
+    explicit RigtorpRingBuffer(size_t capacity) : buffer_(capacity)
     {
     }
 
