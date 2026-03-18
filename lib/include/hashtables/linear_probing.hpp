@@ -6,24 +6,28 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <new>
 #include <type_traits>
+#include <utility>
 
 namespace cpplearn::hashtables {
 
 template <typename K, typename T, typename H = std::hash<K>>
 class LinearHashTable
 {
-    static_assert(std::is_pod<T>::value, "T must be POD");
+    static_assert(std::is_integral_v<K>, "K must be integral");
+    static_assert(std::is_trivially_copyable_v<K>, "K must be trivially copyable");
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable");
 public:
-    constexpr explicit LinearHashTable(size_t capacity, float load_factor) : capacity_(capacity)
+    constexpr explicit LinearHashTable(size_t capacity, float load_factor)
     {
-        if (load_factor_ > 0.0) {
-            load_factor_ = 100.0f/load_factor;
+        capacity_ = capacity > 0 ? capacity : 1;
+        if (load_factor > 0.0f && load_factor < 1.0f) {
+            load_factor_ = load_factor;
+        } else if (load_factor > 1.0f && load_factor <= 100.0f) {
+            load_factor_ = load_factor / 100.0f;
         }
-
-        capacity_ = capacity;
-        slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE, sizeof(Slot) * capacity_));
-        std::memset(slots_, 0xFF, sizeof(Slot) * capacity_);
+        allocate_slots(capacity_);
     }
 
     constexpr ~LinearHashTable()
@@ -37,64 +41,75 @@ public:
             resize(2*capacity_);
         }
 
-        auto hash = hash_(key);
-        auto index = hash % (capacity_ - 1);
-        // either finds delete or empty
-        while (slots_[index].key < DELETED) {
+        auto index = start_index(key);
+        while (slots_[index].key != EMPTY && slots_[index].key != DELETED && slots_[index].key != key) {
             index = (index + 1) % capacity_;
+        }
+        if (slots_[index].key == key) {
+            slots_[index].value = value;
+            return;
         }
         slots_[index].key = key;
         slots_[index].value = value;
-        size_++;
+        ++size_;
     }
 
     constexpr std::pair<uint64_t, uint64_t> find(K key)
     {
-        return find_from(key, hash_(key) % capacity_);
+        return find_from(key, start_index(key));
     }
 
     constexpr auto find_from(K key, uint64_t index)
     {
-        std::pair<uint64_t, uint64_t> result;
-        while (slots_[index].key != key) {
-            // this can be infinite loop
-            index = (index + 1) % capacity_;
-            result.first++;
-            // just as emergency exit
-            if (result.first >= capacity_) {
+        std::pair<uint64_t, uint64_t> result{0, 0};
+        while (result.first < capacity_) {
+            if (slots_[index].key == EMPTY) {
                 break;
             }
+            if (slots_[index].key == key) {
+                result.second = slots_[index].value;
+                return result;
+            }
+            index = (index + 1) % capacity_;
+            ++result.first;
         }
-
-        // found the result
-        result.second = slots_[index].value;
         return result;
     }
 
     constexpr bool contains(K key) const
     {
         size_t steps = 0;
-        const auto hash = hash_(key);
-        const auto index = hash % (capacity_ - 1);
-        while (slots_[index].key != key) {
-            index = (index + 1) % capacity_;
-            if (steps > capacity_) {
+        auto index = start_index(key);
+        while (steps < capacity_) {
+            if (slots_[index].key == EMPTY) {
                 return false;
             }
+            if (slots_[index].key == key) {
+                return true;
+            }
+            index = (index + 1) % capacity_;
+            ++steps;
         }
-
-        return true;
+        return false;
     }
 
-    constexpr void erase(K key)
+    constexpr bool erase(K key)
     {
-        auto hash = hash_(key);
-        auto index = hash % (capacity_ - 1);
-        while (slots_[index].key != key) {
+        auto index = start_index(key);
+        size_t steps = 0;
+        while (steps < capacity_) {
+            if (slots_[index].key == EMPTY) {
+                return false;
+            }
+            if (slots_[index].key == key) {
+                slots_[index].key = DELETED;
+                --size_;
+                return true;
+            }
             index = (index + 1) % capacity_;
+            ++steps;
         }
-        slots_[index].key = DELETED;
-        size_--;
+        return false;
     }
 
     constexpr void clear()
@@ -109,19 +124,36 @@ private:
         auto old_data = slots_;
         auto old_capacity = capacity_;
         capacity_ = capacity;
-        slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE, sizeof(Slot) * capacity_));
-        std::memset(slots_, 0xFF, sizeof(Slot) * capacity_);
+        allocate_slots(capacity_);
+        size_ = 0;
         // need to insert everything back
         for (size_t index = 0; index < old_capacity; index++) {
-            if (old_data[index].key < DELETED) {
+            if (old_data[index].key != EMPTY && old_data[index].key != DELETED) {
                 insert(old_data[index].key, old_data[index].value);
             }
         }
         std::free(old_data);
     }
 
-    static constexpr uint64_t EMPTY = UINT64_MAX;
-    static constexpr uint64_t DELETED = UINT64_MAX - 1;
+    constexpr auto start_index(K key) const -> size_t
+    {
+        return hash_(key) % capacity_;
+    }
+
+    constexpr void allocate_slots(size_t capacity)
+    {
+        const size_t alloc_bytes =
+            ((sizeof(Slot) * capacity) + (utils::CACHE_LINE_SIZE - 1)) &
+            ~(utils::CACHE_LINE_SIZE - 1);
+        slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE, alloc_bytes));
+        if (slots_ == nullptr) {
+            throw std::bad_alloc();
+        }
+        std::memset(slots_, 0xFF, alloc_bytes);
+    }
+
+    static constexpr K EMPTY = static_cast<K>(~K{0});
+    static constexpr K DELETED = static_cast<K>(~K{0} - 1);
     struct Slot
     {
         K key;
