@@ -22,7 +22,7 @@ public:
         }
 
         capacity_ = capacity;
-        slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE. sizeof(Slot) * capacity_));
+        slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE, sizeof(Slot) * capacity_));
         std::memset(slots_, 0xFF, sizeof(Slot) * capacity_);
     }
 
@@ -34,7 +34,7 @@ public:
     constexpr void insert(K key, T value)
     {
         if (size_ >= (capacity_ * load_factor_)) {
-            // resize();
+            resize(2*capacity_);
         }
 
         auto hash = hash_(key);
@@ -50,9 +50,12 @@ public:
 
     constexpr std::pair<uint64_t, uint64_t> find(K key)
     {
+        return find_from(key, hash_(key) % capacity_);
+    }
+
+    constexpr auto find_from(K key, uint64_t index)
+    {
         std::pair<uint64_t, uint64_t> result;
-        auto hash = hash_(key);
-        auto index = hash % (capacity_ - 1);
         while (slots_[index].key != key) {
             // this can be infinite loop
             index = (index + 1) % capacity_;
@@ -94,12 +97,17 @@ public:
         size_--;
     }
 
-private:
+    constexpr void clear()
+    {
+        size_ = 0;
+        std::memset(slots_, 0xFF, sizeof(Slot) * capacity_);
+    }
 
+private:
     constexpr void resize(size_t capacity)
     {
         auto old_data = slots_;
-        auto old_capacity = capacity;
+        auto old_capacity = capacity_;
         capacity_ = capacity;
         slots_ = static_cast<Slot*>(std::aligned_alloc(utils::CACHE_LINE_SIZE, sizeof(Slot) * capacity_));
         std::memset(slots_, 0xFF, sizeof(Slot) * capacity_);

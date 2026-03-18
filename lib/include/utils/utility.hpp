@@ -1,8 +1,15 @@
 #pragma once
 
 #include <type_traits>
+#include <xmmintrin.h>
 
 namespace cpplearn::utility {
+
+
+inline void prefetch(const void* ptr)
+{
+    _mm_prefetch((const char*) ptr, _MM_HINT_NTA);
+}
 
 // Takes a universal reference and returns an rvalue reference
 template <typename T>
