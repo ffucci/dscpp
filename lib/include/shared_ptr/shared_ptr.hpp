@@ -1,7 +1,6 @@
 #pragma once
 
 #include "shared_ptr/control_block_pointer.hpp"
-#include "shared_ptr/shared_ptr_fwd.hpp"
 
 #include <cstddef>
 #include <memory>

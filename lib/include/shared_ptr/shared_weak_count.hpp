@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shared_ptr/control_block_base.hpp"
+#include "shared_ptr/shared_count.hpp"
 
 namespace cpplearn::memory {
     class shared_weak_count : public shared_count {
@@ -29,6 +29,16 @@ namespace cpplearn::memory {
         }
 
         long weak_count() const noexcept { return weak_owners_; }
+
+        shared_weak_count *lock() noexcept {
+            if (use_count() == 0) {
+                return nullptr;
+            }
+
+            // Now we have an additional shared_pointer reading the control block
+            add_shared();
+            return this;
+        }
 
     protected:
         ~shared_weak_count() override = default;

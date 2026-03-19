@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shared_ptr/control_block_weak.hpp"
+#include "shared_ptr/shared_weak_count.hpp"
 
 #include <memory>
 #include <utility>
