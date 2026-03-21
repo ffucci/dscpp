@@ -13,6 +13,13 @@ namespace cpplearn::memory {
 
         WeakPtr(const WeakPtr &) noexcept;
 
+        WeakPtr &operator=(const WeakPtr &) noexcept;
+
+        WeakPtr &operator=(WeakPtr &&) noexcept;
+
+        template<class YPtr>
+        WeakPtr &operator=(const SharedPtr<YPtr> &) noexcept;
+
         void swap(WeakPtr &) noexcept;
 
         void reset() noexcept;
@@ -21,7 +28,6 @@ namespace cpplearn::memory {
         bool expired() const noexcept { return cntrl_ == nullptr || (cntrl_->use_count() == 0); }
 
         SharedPtr<Ptr> lock() const noexcept;
-
 
         template<class _Up>
         friend class _LIBCPP_TEMPLATE_VIS SharedPtr;
@@ -40,7 +46,6 @@ namespace cpplearn::memory {
             cntrl_->add_weak();
         }
     }
-
 
     template<typename Ptr>
     SharedPtr<Ptr> WeakPtr<Ptr>::lock() const noexcept {
@@ -63,5 +68,24 @@ namespace cpplearn::memory {
     template<typename Ptr>
     void WeakPtr<Ptr>::reset() noexcept {
         WeakPtr().swap(*this);
+    }
+
+    template<typename Ptr>
+    WeakPtr<Ptr> &WeakPtr<Ptr>::operator=(const WeakPtr &other) noexcept {
+        WeakPtr(other).swap(*this);
+        return *this;
+    }
+
+    template<typename Ptr>
+    WeakPtr<Ptr> &WeakPtr<Ptr>::operator=(WeakPtr &&other) noexcept {
+        WeakPtr(std::move(other)).swap(*this);
+        return *this;
+    }
+
+    template<typename Ptr>
+    template<typename YPtr>
+    WeakPtr<Ptr> &WeakPtr<Ptr>::operator=(const SharedPtr<YPtr> &other) noexcept {
+        WeakPtr(other).swap(*this);
+        return *this;
     }
 }
