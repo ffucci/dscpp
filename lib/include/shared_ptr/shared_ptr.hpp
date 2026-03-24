@@ -7,6 +7,10 @@
 #include <utility>
 
 namespace cpplearn::memory {
+
+template <typename T>
+class WeakPtr;
+
     template<typename T>
     class SharedPtr {
     public:
@@ -88,6 +92,9 @@ namespace cpplearn::memory {
         long use_count() const noexcept { return ctrl_ != nullptr ? ctrl_->use_count() : 0; }
 
         explicit operator bool() const noexcept { return ptr_ != nullptr; }
+
+        template <typename Ptr>
+        friend class WeakPtr;
 
     private:
         T *ptr_{nullptr};

@@ -4,6 +4,7 @@ include(GoogleTest)
 
 add_executable(tests_all
         main.cpp
+        test_weak_ptr.cpp
         tests_exception_guard.cpp
         tests_mvector.cpp
         tests_shared_ptr.cpp)
