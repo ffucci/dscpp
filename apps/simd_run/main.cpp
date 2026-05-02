@@ -1,12 +1,11 @@
 #include <cstddef>
 #include <iostream>
 #include <chrono>
-
+#include <numeric>
 #include "simd/btree.hpp"
 #include "simd/simd.hpp"
 
-int main()
-{
+int main() {
     constexpr int N = 1 << 12;
 
     std::vector<size_t> measurements;
