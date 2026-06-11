@@ -9,11 +9,18 @@ TEST(VariantStorageUnion, CanAllocate) {
     EXPECT_EQ(v.template get<1>(), 2.4f);
 }
 
-
 TEST(VariantUnion, CanAllocate) {
     cpplearn::types::variant_union<int, float> v(1.2f);
     EXPECT_EQ(v.get<1>(), 1.2f);
 
     cpplearn::types::variant_union<int, float, double> v2(3.5);
     EXPECT_EQ(v2.get<2>(), 3.5);
+}
+
+TEST(VariantUnion, CanAssignNewValue) {
+    cpplearn::types::variant_union<int, float> v(1.2f);
+    std::cout << v.get<1>() << std::endl;
+    v = 200;
+    EXPECT_EQ(v.get<0>(), 200);
+    std::cout << v.get<0>() << std::endl;
 }

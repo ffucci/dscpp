@@ -14,9 +14,10 @@ namespace cpplearn::types {
                                   Other &&value) : value(std::forward<Other>(value)) {
         }
 
-        template<std::size_t Index, typename Other> requires (Index > 0)
-        constexpr variant_storage(std::integral_constant<size_t, Index>, Other &&value) : storage(
-            std::integral_constant<size_t, Index - 1>{}, std::forward<Other>(value)) {
+        template<std::size_t Index, typename Other>
+            requires(Index > 0)
+        constexpr variant_storage(std::integral_constant<size_t, Index>, Other &&value)
+            : storage(std::integral_constant<size_t, Index - 1>{}, std::forward<Other>(value)) {
         }
 
         template<size_t Index>
@@ -28,14 +29,13 @@ namespace cpplearn::types {
             }
         }
 
-        template<size_t Index>
-        void destroy() {
-            if constexpr (Index == 0) {
+        void destroy(std::size_t index) {
+            if (index == 0) {
                 value.~Type();
                 return;
-            } else {
-                storage.template destroy<Index - 1>();
             }
+
+            storage.destroy(index - 1);
         }
 
     private:
@@ -55,7 +55,7 @@ namespace cpplearn::types {
             return value;
         }
 
-        void destroy() noexcept {
+        constexpr void destroy(size_t index) noexcept {
             value.~Type();
         }
 
@@ -75,13 +75,18 @@ namespace cpplearn::types {
 
     template<typename T, typename First, typename... Rest>
     constexpr auto get_type_index() noexcept {
-        if constexpr (std::is_same_v<T, First>) {
+        if constexpr (sizeof...(Rest) == 0) {
+            return std::is_same_v<T, First> ? 0 : 1;
+        } else if constexpr (std::is_same_v<T, First>) {
             return 0;
         } else {
             return 1 + get_type_index<T, Rest...>();
         }
     }
 
+    static_assert(get_type_index<int, int, float, double>() == 0);
+    static_assert(get_type_index<char, int, float, double>() == 3);
+    static_assert(get_type_index<double, int, float, double>() == 2);
 
     template<typename... Types>
     class variant_union {
@@ -92,9 +97,9 @@ namespace cpplearn::types {
         }
 
         template<typename T>
-        constexpr variant_union(T &&value) : index(get_type_index<T, Types...>()),
-                                             storage(std::integral_constant<size_t, get_type_index<T, Types...>()>{},
-                                                     std::forward<T>(value)) {
+        constexpr variant_union(T &&value)
+            : index(get_type_index<T, Types...>()),
+              storage(std::integral_constant<size_t, get_type_index<T, Types...>()>{}, std::forward<T>(value)) {
         }
 
         template<size_t Index>
@@ -102,8 +107,22 @@ namespace cpplearn::types {
             return storage.template get<Index>();
         }
 
+        template<typename Other>
+        constexpr variant_union &operator=(Other &&value) {
+            constexpr auto new_index = get_type_index<Other, Types...>();
+            // this is not properly correct because it assumes that Other is in the variant
+            storage.destroy(index);
+            index = new_index;
+            get<new_index>() = std::forward<Other>(value);
+            return *this;
+        }
+
+        ~variant_union() {
+            storage.destroy(index);
+        }
+
     private:
         size_t index;
         variant_storage<Types...> storage;
     };
-}
+} // namespace cpplearn::types
